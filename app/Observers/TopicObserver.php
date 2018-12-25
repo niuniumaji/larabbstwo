@@ -4,7 +4,8 @@ namespace App\Observers;
 
 use App\Models\Topic;
 
-use Overtrue\Pinyin\Pinyin;
+//use Overtrue\Pinyin\Pinyin;
+use App\Handlers\SlugTranslateHandler;
 // creating, created, updating, updated, saving,
 // saved,  deleting, deleted, restoring, restored
 
@@ -15,9 +16,19 @@ class TopicObserver
     	$topic->body = clean($topic->body, 'user_topic_body');
         $topic->excerpt = make_excerpt($topic->body);
         
+        /*if ( ! $topic->slug) {
+            //$topic->slug = app(SlugTranslateHandler::class)->pinyin($topic->title);
+            dispatch(new TranslateSlug($topic));
+        }*/
+    }
+
+    public function saved(Topic $topic)
+    {
+        // 如 slug 字段无内容，即使用翻译器对 title 进行翻译
         if ( ! $topic->slug) {
-            $pinyin = new Pinyin(); // 默认
-            $topic->slug = $pinyin->permalink($topic->title);
+
+            // 推送任务到队列
+            dispatch(new TranslateSlug($topic));
         }
     }
 
@@ -28,6 +39,6 @@ class TopicObserver
 
     public function updating(Topic $topic)
     {
-        //
+       
     }
 }
